@@ -1,9 +1,11 @@
 # Imports
 import pygame
 import random
+import xbox360_controller
 
 # Initialize game engine
 pygame.init()
+
 
 
 # Window
@@ -13,6 +15,9 @@ SIZE = (WIDTH, HEIGHT)
 TITLE = "Space War"
 screen = pygame.display.set_mode(SIZE)
 pygame.display.set_caption(TITLE)
+
+# make a controller
+my_controller = xbox360_controller.Controller(0)
 
 
 # Timer
@@ -50,9 +55,9 @@ bomb_img = pygame.image.load('assets/images/laserRed13.png')
 
 
 # Sounds
-BACKGROUND = pygame.mixer.music.load('assets/sounds/background.ogg')
-pygame.mixer.music.play(-1)
+START_BACKGROUND = pygame.mixer.Sound('assets/sounds/background.ogg')
 EXPLOSION = pygame.mixer.Sound('assets/sounds/explosion.ogg')
+END_BACKGROUND = pygame.mixer.Sound('assets/sounds/end.ogg')
 
 
 
@@ -74,19 +79,14 @@ class Ship(pygame.sprite.Sprite):
         
         self.speed = 10
         self.shield = 2
-
-    def move_left(self):
-        self.rect.x -= self.speed
         
-        if self.rect.left < 0:
-            self.rect.left = 0
-        
-        
-    def move_right(self):
-        self.rect.x += self.speed
+    def move(self, left_x):
+        self.rect.x += self.speed * left_x
         
         if self.rect.right > WIDTH:
             self.rect.right = WIDTH
+        elif self.rect.left < 0:
+            self.rect.left = 0
 
     def shoot(self):
         laser = Laser(laser_img)
@@ -275,14 +275,17 @@ while not done:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             done = True
-        elif event.type == pygame.KEYDOWN:
+        elif event.type == pygame.JOYBUTTONDOWN:
+            print("button")
             if stage == START:
-                if event.key == pygame.K_SPACE:
+                if event.button == xbox360_controller.START:
                     stage = PLAYING
+                    print("start")
             elif stage == PLAYING:
-                if event.key == pygame.K_SPACE:
+                if event.button ==xbox360_controller.A :
                     ship.shoot()
             elif stage == END:
+                END_BACKGROUND.play()
                 restart_text = FONT_LG.render("Press tab to restart.", 1, WHITE)
                 r_rect = restart_text.get_rect()
                 r_rect.centerx = WIDTH / 2
@@ -290,16 +293,13 @@ while not done:
                 
                 screen.blit(restart_text, r_rect)
 
-                if event.key == pygame.K_TAB:
+                if event.button == xbox360_controller.START:
                     setup()
 
     if stage == PLAYING:
-        pressed = pygame.key.get_pressed()
+        left_x, _ = my_controller.get_left_stick()
 
-        if pressed[pygame.K_LEFT]:
-            ship.move_left()
-        elif pressed[pygame.K_RIGHT]:
-            ship.move_right()        
+        ship.move(left_x)     
             
     
     # Game logic (Check for collisions, update points, etc.)
